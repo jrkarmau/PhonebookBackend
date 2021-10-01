@@ -4,39 +4,35 @@ const morgan = require('morgan')
 const cors = require('cors')
 const Person = require('./models/person')
 const app = express()
-const PORT = process.env.PORT
+
 
 app.use(express.static('build'))
 app.use(express.json())
 app.use(cors())
 
 
-
-morgan.token('body', (req, res) => JSON.stringify(req.body))
+morgan.token('body', (req) => JSON.stringify(req.body))
 app.use(morgan(':method :url :status :response-time ms :res[content-length] :body'))
 
-app.post('/api/persons', (req, res) => {
+
+app.post('/api/persons', (req, res, next) => {
   const body = req.body
-  if (!body.name) {
-    return res.status(400).json({
-      error: 'name is empthy'
-    })
-  }
-  if (!body.number) {
-    return res.status(400).json({
-      error: 'number is empthy'
-    })
-  }
+
   const person = new Person({
     name: body.name,
     number: body.number
   })
-  person.save().then(savedPerson => {
-    res.json(savedPerson)
-  })
+
+  person
+    .save()
+    .then(savedPerson => savedPerson.toJSON())
+    .then(savedAndFormattedPerson => {
+      res.json(savedAndFormattedPerson)
+    })
+    .catch(error => next(error))
 })
 
-app.get('/api/persons/', (req, res) => {
+app.get('/api/persons/', (res) => {
   Person.find({}).then(persons => {
     res.json(persons)
   })
@@ -56,7 +52,7 @@ app.get('/api/persons/:id', (req, res, next) => {
 
 app.delete('/api/persons/:id', (req, res, next) => {
   Person.findByIdAndDelete(req.params.id)
-    .then(result => {
+    .then(() => {
       res.status(204).end()
     })
     .catch(error => next(error))
@@ -68,7 +64,7 @@ app.put('/api/persons/:id', (req, res, next) => {
     name: body.name,
     number: body.number
   }
-  Person.findByIdAndUpdate(req.params.id, person, {new: true})
+  Person.findByIdAndUpdate(req.params.id, person, { new: true })
     .then(updatedPerson => {
       res.json(updatedPerson)
     })
@@ -94,12 +90,14 @@ const errorHandler = (error, request, response, next) => {
 
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
   }
-
   next(error)
 }
 app.use(errorHandler)
 
+const PORT = process.env.PORT /*global process*/
 app.listen(PORT, () => {
   console.log(`server running at port ${PORT}`)
 })

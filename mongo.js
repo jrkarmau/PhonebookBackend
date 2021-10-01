@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 
+/*global process*/
 if (process.argv.length < 3) {
   console.log('give password')
   process.exit(1)
@@ -26,8 +27,8 @@ if (newName) {
     name: newName,
     number: newNumber
   })
-  
-  person.save().then(response => {
+
+  person.save().then(() => {
     console.log(`added ${newName} number ${newNumber} to phonebook`)
     mongoose.connection.close()
   })
