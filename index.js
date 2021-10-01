@@ -32,7 +32,7 @@ app.post('/api/persons', (req, res, next) => {
     .catch(error => next(error))
 })
 
-app.get('/api/persons/', (res) => {
+app.get('/api/persons/', (req, res) => {
   Person.find({}).then(persons => {
     res.json(persons)
   })
